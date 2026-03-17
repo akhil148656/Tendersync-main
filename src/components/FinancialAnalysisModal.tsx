@@ -38,7 +38,7 @@ interface AnalysisResult {
   }>;
 }
 
-export const FinancialAnalysisModal = ({ tender, isOpen, onClose }: any) => {
+export const FinancialAnalysisModal = ({ tender, isOpen, onClose, onAnalysisComplete }: any) => {
   const [inventoryData, setInventoryData] = useState('');
   const [result, setResult] = useState<AnalysisResult | null>(null);
   const [loading, setLoading] = useState(false);
@@ -97,6 +97,7 @@ export const FinancialAnalysisModal = ({ tender, isOpen, onClose }: any) => {
       const data = await resp.json();
       if (data.error) throw new Error(data.error);
       setResult(data);
+      if (onAnalysisComplete) onAnalysisComplete(data);
     } catch (err: any) {
       console.error(err);
       alert("Analysis failed: " + err.message);
