@@ -85,7 +85,7 @@ export const Dashboard = () => {
         />
         <StatCard 
           label="Rejected Bids" 
-          value="7" 
+          value="5" 
           icon={XCircle} 
           color="bg-rose-500" 
         />
@@ -153,48 +153,33 @@ export const Dashboard = () => {
             </div>
           </div>
 
-          {/* Pipeline Status Tracker */}
+          {/* AI Pipeline Panel */}
           <div className="glass-card">
-            <h3 className="text-xl font-bold text-white mb-8">Pipeline Status Tracker</h3>
-            <div className="relative">
-              <div className="absolute top-1/2 left-0 w-full h-1 bg-white/5 -translate-y-1/2" />
-              <div className="flex justify-between relative z-10">
-                {pipelineStages.map((stage, i) => (
-                  <div key={i} className="flex flex-col items-center gap-4">
-                    <div className={cn(
-                      "w-10 h-10 rounded-full flex items-center justify-center border-2 transition-all duration-500",
-                      stage.status === 'completed' ? "bg-cyan-500 border-cyan-400 shadow-[0_0_15px_rgba(34,211,238,0.4)]" :
-                      stage.status === 'active' ? "bg-slate-900 border-cyan-400 animate-pulse" : "bg-slate-900 border-white/10"
-                    )}>
-                      {stage.status === 'completed' ? (
-                        <CheckCircle2 size={20} className="text-white" />
-                      ) : (
-                        <span className={cn("text-sm font-bold", stage.status === 'active' ? "text-cyan-400" : "text-slate-600")}>
-                          {i + 1}
-                        </span>
-                      )}
-                    </div>
-                    <div className="text-center">
-                      <p className={cn(
-                        "text-xs font-bold uppercase tracking-tighter",
-                        stage.status === 'pending' ? "text-slate-600" : "text-slate-300"
-                      )}>
-                        {stage.label}
-                      </p>
-                      {stage.status === 'active' && (
-                        <div className="mt-2 w-24 h-1.5 bg-white/5 rounded-full overflow-hidden mx-auto">
-                          <motion.div 
-                            initial={{ width: 0 }}
-                            animate={{ width: `${stage.progress}%` }}
-                            className="h-full bg-cyan-500"
-                          />
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
+            <h3 className="text-xl font-bold text-white mb-6">AI Pipeline Panel</h3>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+              {[
+                { label: 'RFP Parsing', value: '100%', color: 'text-cyan-400' },
+                { label: 'Technical Matching', value: '85%', color: 'text-purple-400' },
+                { label: 'Pricing Analysis', value: '92%', color: 'text-emerald-400' },
+                { label: 'Win Probability', value: '78%', color: 'text-orange-400' },
+              ].map((item, i) => (
+                <div key={i} className="text-center p-4 rounded-xl bg-white/5 border border-white/5">
+                  <p className="text-[10px] font-bold text-slate-500 uppercase mb-1">{item.label}</p>
+                  <p className={cn("text-2xl font-bold", item.color)}>{item.value}</p>
+                </div>
+              ))}
             </div>
+          </div>
+
+          {/* AI Insight Panel */}
+          <div className="glass-card bg-gradient-to-r from-cyan-500/10 to-purple-500/10 border-cyan-500/20">
+            <div className="flex items-center gap-3 mb-4">
+              <Zap className="text-cyan-400" size={20} />
+              <h3 className="text-lg font-bold text-white">AI Insight Panel</h3>
+            </div>
+            <p className="text-slate-300 italic leading-relaxed">
+              “94% specification match detected. Estimated profit margin: +18%. Risk level: Low. Recommendation: Proceed with bid.”
+            </p>
           </div>
         </div>
 

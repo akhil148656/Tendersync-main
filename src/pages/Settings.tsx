@@ -1,175 +1,137 @@
 import React, { useState } from 'react';
+import { motion } from 'motion/react';
 import { 
   Settings as SettingsIcon, 
   Bell, 
   Shield, 
   Database, 
-  Monitor, 
-  Globe, 
-  Zap,
-  Save,
-  RefreshCw
+  RefreshCw, 
+  Moon, 
+  Globe,
+  Lock,
+  Smartphone
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 
+const SettingsSection = ({ title, icon: Icon, children }: any) => (
+  <div className="glass-card">
+    <div className="flex items-center gap-3 mb-8">
+      <div className="p-2 rounded-lg bg-white/5 text-cyan-400">
+        <Icon size={20} />
+      </div>
+      <h3 className="text-lg font-bold text-white">{title}</h3>
+    </div>
+    <div className="space-y-6">
+      {children}
+    </div>
+  </div>
+);
+
+const Toggle = ({ enabled, onChange }: { enabled: boolean, onChange: () => void }) => (
+  <button 
+    onClick={onChange}
+    className={cn(
+      "w-12 h-6 rounded-full transition-all relative",
+      enabled ? "bg-cyan-500" : "bg-slate-700"
+    )}
+  >
+    <div className={cn(
+      "absolute top-1 w-4 h-4 rounded-full bg-white transition-all",
+      enabled ? "left-7" : "left-1"
+    )} />
+  </button>
+);
+
 export const Settings = () => {
-  const [refreshInterval, setRefreshInterval] = useState('30');
-  const [dataSource, setDataSource] = useState('Demo');
-  const [notifications, setNotifications] = useState({
-    newTender: true,
-    analysisComplete: true,
-    bidStatus: true,
-    marketTrends: false
-  });
+  const [notifications, setNotifications] = useState(true);
+  const [demoMode, setDemoMode] = useState(true);
+  const [refreshInterval, setRefreshInterval] = useState('15');
 
   return (
-    <div className="space-y-8 max-w-4xl mx-auto">
-      <div className="flex justify-between items-end">
-        <div>
-          <h2 className="text-3xl font-bold text-white">System Settings</h2>
-          <p className="text-slate-400 mt-1">Configure your platform preferences and data sources.</p>
-        </div>
-        <button className="flex items-center gap-2 px-6 py-3 rounded-xl bg-cyan-500 text-white font-bold shadow-lg shadow-cyan-500/20 hover:shadow-cyan-500/40 transition-all">
-          <Save size={18} /> Save Changes
-        </button>
+    <div className="max-w-4xl space-y-8">
+      <div>
+        <h2 className="text-3xl font-bold text-white">Settings</h2>
+        <p className="text-slate-400 mt-1">Manage your account preferences and system configuration.</p>
       </div>
 
       <div className="grid grid-cols-1 gap-8">
-        {/* General Settings */}
-        <section className="glass-card space-y-8">
-          <div className="flex items-center gap-3 pb-4 border-b border-white/5">
-            <Monitor className="text-cyan-400" size={24} />
-            <h3 className="text-xl font-bold text-white">General Preferences</h3>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <div className="space-y-3">
-              <label className="text-sm font-bold text-slate-400 uppercase tracking-wider">Refresh Interval</label>
-              <p className="text-xs text-slate-500 mb-2">How often the system scans for new tenders.</p>
-              <div className="flex bg-white/5 rounded-xl p-1 border border-white/10">
-                {['15', '30', '60'].map((time) => (
-                  <button
-                    key={time}
-                    onClick={() => setRefreshInterval(time)}
-                    className={cn(
-                      "flex-1 py-2 rounded-lg text-sm font-bold transition-all",
-                      refreshInterval === time ? "bg-cyan-500 text-white shadow-lg shadow-cyan-500/20" : "text-slate-500 hover:text-slate-300"
-                    )}
-                  >
-                    {time} Mins
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div className="space-y-3">
-              <label className="text-sm font-bold text-slate-400 uppercase tracking-wider">Data Source Mode</label>
-              <p className="text-xs text-slate-500 mb-2">Switch between simulated and live data scraping.</p>
-              <div className="flex bg-white/5 rounded-xl p-1 border border-white/10">
-                {['Demo', 'Scraper'].map((mode) => (
-                  <button
-                    key={mode}
-                    onClick={() => setDataSource(mode)}
-                    className={cn(
-                      "flex-1 py-2 rounded-lg text-sm font-bold transition-all",
-                      dataSource === mode ? "bg-purple-500 text-white shadow-lg shadow-purple-500/20" : "text-slate-500 hover:text-slate-300"
-                    )}
-                  >
-                    {mode} Mode
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* Notification Settings */}
-        <section className="glass-card space-y-8">
-          <div className="flex items-center gap-3 pb-4 border-b border-white/5">
-            <Bell className="text-purple-400" size={24} />
-            <h3 className="text-xl font-bold text-white">Notification Controls</h3>
-          </div>
-
-          <div className="space-y-4">
-            {[
-              { id: 'newTender', label: 'New Tender Alerts', desc: 'Get notified as soon as a matching tender is detected.' },
-              { id: 'analysisComplete', label: 'Analysis Completion', desc: 'Receive updates when AI technical matching is finished.' },
-              { id: 'bidStatus', label: 'Bid Status Updates', desc: 'Real-time notifications for approval or rejection of bids.' },
-              { id: 'marketTrends', label: 'Market Trend Insights', desc: 'Weekly summaries of emerging opportunities in your sector.' },
-            ].map((item) => (
-              <div key={item.id} className="flex items-center justify-between p-4 rounded-xl bg-white/5 border border-white/5">
-                <div>
-                  <p className="text-sm font-bold text-white">{item.label}</p>
-                  <p className="text-xs text-slate-500 mt-1">{item.desc}</p>
-                </div>
-                <button 
-                  onClick={() => setNotifications(prev => ({ ...prev, [item.id]: !prev[item.id as keyof typeof notifications] }))}
-                  className={cn(
-                    "w-12 h-6 rounded-full transition-all relative",
-                    notifications[item.id as keyof typeof notifications] ? "bg-cyan-500" : "bg-slate-700"
-                  )}
-                >
-                  <div className={cn(
-                    "absolute top-1 w-4 h-4 rounded-full bg-white transition-all shadow-sm",
-                    notifications[item.id as keyof typeof notifications] ? "right-1" : "left-1"
-                  )} />
-                </button>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        {/* Security & API */}
-        <section className="glass-card space-y-8">
-          <div className="flex items-center gap-3 pb-4 border-b border-white/5">
-            <Shield className="text-emerald-400" size={24} />
-            <h3 className="text-xl font-bold text-white">Security & API Access</h3>
-          </div>
-
-          <div className="space-y-6">
-            <div className="flex items-center justify-between p-4 rounded-xl bg-white/5 border border-white/5">
-              <div className="flex items-center gap-4">
-                <div className="p-2 rounded-lg bg-cyan-500/10 text-cyan-400">
-                  <Zap size={20} />
-                </div>
-                <div>
-                  <p className="text-sm font-bold text-white">AI Core API Key</p>
-                  <p className="text-xs text-slate-500 mt-1">Connected to Gemini-3-Flash-Preview</p>
-                </div>
-              </div>
-              <button className="text-xs font-bold text-cyan-400 hover:underline">Manage Key</button>
-            </div>
-
-            <div className="flex items-center justify-between p-4 rounded-xl bg-white/5 border border-white/5">
-              <div className="flex items-center gap-4">
-                <div className="p-2 rounded-lg bg-purple-500/10 text-purple-400">
-                  <Database size={20} />
-                </div>
-                <div>
-                  <p className="text-sm font-bold text-white">Database Sync</p>
-                  <p className="text-xs text-slate-500 mt-1">Last synced: Today, 09:12 AM</p>
-                </div>
-              </div>
-              <button className="flex items-center gap-2 text-xs font-bold text-purple-400 hover:underline">
-                <RefreshCw size={14} /> Sync Now
-              </button>
-            </div>
-          </div>
-        </section>
-
-        {/* Danger Zone */}
-        <section className="glass-card border-rose-500/20">
-          <h3 className="text-sm font-bold text-rose-500 uppercase mb-4">Danger Zone</h3>
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 rounded-xl bg-rose-500/5 border border-rose-500/10">
+        <SettingsSection title="System Configuration" icon={Database}>
+          <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-bold text-white">Reset Platform Data</p>
-              <p className="text-xs text-slate-500 mt-1">This will clear all your bid history and cached tenders.</p>
+              <p className="text-sm font-bold text-white">Data Refresh Interval</p>
+              <p className="text-xs text-slate-500 mt-1">How often the system checks for new tenders.</p>
             </div>
-            <button className="px-4 py-2 rounded-lg bg-rose-500/10 border border-rose-500/20 text-rose-500 text-xs font-bold hover:bg-rose-500/20 transition-all">
-              Reset Data
+            <select 
+              value={refreshInterval}
+              onChange={(e) => setRefreshInterval(e.target.value)}
+              className="bg-slate-900 border border-white/10 rounded-lg px-4 py-2 text-sm text-white focus:outline-none focus:border-cyan-500/50"
+            >
+              <option value="15">Every 15 mins</option>
+              <option value="30">Every 30 mins</option>
+              <option value="60">Every 60 mins</option>
+            </select>
+          </div>
+
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-bold text-white">Data Mode</p>
+              <p className="text-xs text-slate-500 mt-1">Switch between static demo data and live API feeds.</p>
+            </div>
+            <div className="flex items-center gap-3">
+              <span className="text-xs font-medium text-slate-400">{demoMode ? 'Demo Mode' : 'Live Mode'}</span>
+              <Toggle enabled={demoMode} onChange={() => setDemoMode(!demoMode)} />
+            </div>
+          </div>
+        </SettingsSection>
+
+        <SettingsSection title="Notifications" icon={Bell}>
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-bold text-white">Push Notifications</p>
+              <p className="text-xs text-slate-500 mt-1">Receive alerts for new tenders and bid status updates.</p>
+            </div>
+            <Toggle enabled={notifications} onChange={() => setNotifications(!notifications)} />
+          </div>
+
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-bold text-white">Email Digests</p>
+              <p className="text-xs text-slate-500 mt-1">Weekly summary of market trends and bid performance.</p>
+            </div>
+            <Toggle enabled={false} onChange={() => {}} />
+          </div>
+        </SettingsSection>
+
+        <SettingsSection title="Security & Privacy" icon={Shield}>
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-bold text-white">Two-Factor Authentication</p>
+              <p className="text-xs text-slate-500 mt-1">Add an extra layer of security to your account.</p>
+            </div>
+            <button className="px-4 py-2 rounded-lg bg-white/5 border border-white/10 text-xs font-bold text-white hover:bg-white/10 transition-all">
+              Configure
             </button>
           </div>
-        </section>
+
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-bold text-white">API Access Keys</p>
+              <p className="text-xs text-slate-500 mt-1">Manage keys for external integrations.</p>
+            </div>
+            <button className="px-4 py-2 rounded-lg bg-white/5 border border-white/10 text-xs font-bold text-white hover:bg-white/10 transition-all">
+              Manage Keys
+            </button>
+          </div>
+        </SettingsSection>
+
+        <div className="flex justify-end gap-4 pt-4">
+          <button className="px-8 py-3 rounded-xl border border-white/10 text-slate-400 font-bold hover:bg-white/5 transition-all">
+            Discard Changes
+          </button>
+          <button className="px-8 py-3 rounded-xl bg-cyan-500 text-slate-900 font-bold shadow-lg shadow-cyan-500/20 hover:bg-cyan-400 transition-all">
+            Save Configuration
+          </button>
+        </div>
       </div>
     </div>
   );

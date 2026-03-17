@@ -1,4 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { motion, AnimatePresence } from 'motion/react';
 import { 
   LayoutDashboard, 
   User, 
@@ -13,8 +15,6 @@ import {
   Activity,
   LogOut
 } from 'lucide-react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../lib/utils';
 
 interface SidebarItemProps {
@@ -85,39 +85,37 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
             {menuItems.map((item) => (
               <SidebarItem
                 key={item.path}
-                {...item}
+                icon={item.icon}
+                label={item.label}
+                path={item.path}
                 active={location.pathname === item.path}
               />
             ))}
           </nav>
 
-          <button 
-            onClick={() => navigate('/')}
-            className="flex items-center gap-3 px-4 py-3 rounded-xl text-slate-400 hover:text-red-400 hover:bg-red-500/10 transition-all duration-200 mt-auto"
-          >
-            <LogOut size={20} />
-            <span className="font-medium">Logout</span>
-          </button>
+          <div className="pt-6 border-t border-white/5">
+            <button 
+              onClick={() => navigate('/')}
+              className="flex items-center gap-3 px-4 py-3 rounded-xl text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 transition-all w-full"
+            >
+              <LogOut size={20} />
+              <span className="font-medium">Logout</span>
+            </button>
+          </div>
         </div>
       </motion.aside>
 
       {/* Main Content */}
-      <main className="flex-1 flex flex-col relative overflow-hidden">
+      <main className="flex-1 flex flex-col h-screen overflow-hidden relative">
         {/* Header */}
-        <header className="h-20 glass border-b border-white/5 flex items-center justify-between px-8 z-40">
+        <header className="h-20 glass border-b border-white/5 px-8 flex items-center justify-between shrink-0 relative z-40">
           <div className="flex items-center gap-4 flex-1 max-w-xl">
-            <button 
-              onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-              className="p-2 hover:bg-white/5 rounded-lg text-slate-400 lg:hidden"
-            >
-              <Menu size={20} />
-            </button>
             <div className="relative w-full group">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-cyan-400 transition-colors" size={18} />
               <input 
                 type="text" 
-                placeholder="Search tenders, RFPs, or documents..." 
-                className="w-full bg-white/5 border border-white/10 rounded-xl py-2.5 pl-10 pr-4 focus:outline-none focus:border-cyan-500/50 focus:ring-1 focus:ring-cyan-500/50 transition-all"
+                placeholder="Search tenders, bids, or insights..." 
+                className="w-full bg-white/5 border border-white/10 rounded-xl py-2 pl-10 pr-4 focus:outline-none focus:border-cyan-500/50 transition-all"
               />
             </div>
           </div>
@@ -125,21 +123,21 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
           <div className="flex items-center gap-6">
             <div className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20">
               <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-              <span className="text-xs font-medium text-emerald-500 uppercase tracking-wider">System Active</span>
+              <span className="text-xs font-bold text-emerald-500 uppercase tracking-wider">System Active</span>
             </div>
-            
-            <button className="relative p-2 text-slate-400 hover:text-white hover:bg-white/5 rounded-lg transition-all">
+
+            <button className="relative p-2 rounded-xl hover:bg-white/5 transition-all text-slate-400 hover:text-white">
               <Bell size={20} />
-              <span className="absolute top-2 right-2 w-2 h-2 bg-cyan-500 rounded-full border-2 border-slate-900" />
+              <span className="absolute top-2 right-2 w-2 h-2 bg-cyan-500 rounded-full border-2 border-background" />
             </button>
 
             <div className="flex items-center gap-3 pl-6 border-l border-white/10">
               <div className="text-right hidden sm:block">
-                <p className="text-sm font-semibold text-white">Vattem Akhilesh</p>
-                <p className="text-xs text-slate-500">Premium Contractor</p>
+                <p className="text-sm font-bold text-white">Acme Corp</p>
+                <p className="text-xs text-slate-500">Premium Plan</p>
               </div>
-              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-slate-700 to-slate-900 border border-white/10 flex items-center justify-center overflow-hidden">
-                <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Akhilesh" alt="Avatar" referrerPolicy="no-referrer" />
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-slate-700 to-slate-900 border border-white/10 flex items-center justify-center text-cyan-400 font-bold shadow-lg">
+                TS
               </div>
             </div>
           </div>
@@ -147,17 +145,14 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
 
         {/* Page Content */}
         <div className="flex-1 overflow-y-auto p-8 custom-scrollbar">
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={location.pathname}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              transition={{ duration: 0.2 }}
-            >
-              {children}
-            </motion.div>
-          </AnimatePresence>
+          <motion.div
+            key={location.pathname}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3 }}
+          >
+            {children}
+          </motion.div>
         </div>
       </main>
     </div>
