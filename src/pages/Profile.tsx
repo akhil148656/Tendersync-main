@@ -15,6 +15,7 @@ import {
   X
 } from 'lucide-react';
 import { cn } from '../lib/utils';
+import { useProfile } from '../contexts/ProfileContext';
 
 const ProfileCard = ({ title, icon: Icon, children }: any) => (
   <div className="glass-card">
@@ -51,66 +52,83 @@ const DetailItem = ({ label, value, icon: Icon, isEditing, onChange, name }: any
 );
 
 export const Profile = () => {
+  const { profile, loading, updateProfile } = useProfile();
   const [isEditing, setIsEditing] = React.useState(false);
-  const [profileData, setProfileData] = React.useState(() => {
-    const saved = localStorage.getItem('user_profile');
-    return saved ? JSON.parse(saved) : {
-      company_name: 'Acme Corp Pvt Ltd',
-      legal_name: 'Acme Corporation Private Limited',
-      reg_type: 'Private Limited Company',
-      industry: 'Infrastructure & Technology',
-      size: '250 - 500 Employees',
-      pan: 'ABCDE1234F',
-      gstin: '22AAAA0000A1Z5',
-      license: 'LIC-2024-78421',
-      msme: 'Registered (Udyam)',
-      email: 'tenders@acmecorp.com',
-      phone: '+91 98765 43210',
-      address: 'Tech Park, Sector 62, Noida, UP',
-      website: 'www.acmecorp.com'
-    };
-  });
+  const [formData, setFormData] = React.useState<any>(null);
+  const [saving, setSaving] = React.useState(false);
+
+  React.useEffect(() => {
+    if (profile) {
+      setFormData({
+        company_name: profile.company_name,
+        contractor_type: profile.contractor_type,
+        pan: profile.pan,
+        gstin: profile.gstin,
+        license: profile.license,
+        email: profile.email,
+        phone: profile.phone,
+        address: profile.address
+      });
+    }
+  }, [profile]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setProfileData(prev => ({ ...prev, [name]: value }));
+    setFormData((prev: any) => ({ ...prev, [name]: value }));
   };
 
-  const saveChanges = () => {
-    localStorage.setItem('user_profile', JSON.stringify(profileData));
-    setIsEditing(false);
+  const saveChanges = async () => {
+    setSaving(true);
+    try {
+      await updateProfile(formData);
+      setIsEditing(false);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setSaving(false);
+    }
   };
 
   const cancelChanges = () => {
-    const saved = localStorage.getItem('user_profile');
-    if (saved) setProfileData(JSON.parse(saved));
+    if (profile) {
+      setFormData({ ...profile });
+    }
     setIsEditing(false);
   };
+
+  if (loading || !formData) {
+    return (
+      <div className="flex flex-col items-center justify-center h-64 gap-4">
+        <div className="w-12 h-12 border-4 border-cyan-500 border-t-transparent rounded-full animate-spin"></div>
+        <p className="text-slate-400 font-medium">Syncing profile data...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-8">
       <div className="flex justify-between items-end">
         <div className="flex items-center gap-6">
-          <div className="w-24 h-24 rounded-[32px] bg-gradient-to-br from-cyan-500 to-purple-600 flex items-center justify-center text-4xl font-bold text-white shadow-2xl shadow-cyan-500/20 border-4 border-white/10">
-            {profileData.company_name.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase()}
+          <div className="w-24 h-24 rounded-[32px] bg-gradient-to-br from-cyan-500 to-purple-600 flex items-center justify-center text-4xl font-bold text-white shadow-2xl shadow-cyan-500/20 border-4 border-white/10 uppercase">
+            {profile?.avatar_initials || 'KS'}
           </div>
           <div>
             {isEditing ? (
                <input
                  type="text"
                  name="company_name"
-                 value={profileData.company_name}
+                 value={formData.company_name}
                  onChange={handleInputChange}
                  className="text-3xl font-bold bg-white/5 border border-white/10 rounded-xl px-4 py-1 text-white focus:outline-none focus:border-cyan-500/50"
                />
             ) : (
-              <h2 className="text-3xl font-bold text-white">{profileData.company_name}</h2>
+              <h2 className="text-3xl font-bold text-white">{profile?.company_name}</h2>
             )}
             <div className="flex items-center gap-3 mt-2">
               <span className="px-2 py-1 rounded-md bg-emerald-500/10 text-emerald-500 text-[10px] font-bold uppercase tracking-wider flex items-center gap-1">
                 <ShieldCheck size={12} /> Verified Entity
               </span>
-              <span className="text-slate-500 text-sm">Member since Oct 2023</span>
+              <span className="text-slate-500 text-sm">Last Synced: {profile?.profile_last_updated ? new Date(profile.profile_last_updated).toLocaleTimeString() : 'Just now'}</span>
             </div>
           </div>
         </div>
@@ -125,9 +143,10 @@ export const Profile = () => {
               </button>
               <button 
                 onClick={saveChanges}
-                className="flex items-center gap-2 px-6 py-3 rounded-xl bg-cyan-500 text-slate-900 font-bold hover:bg-cyan-400 transition-all shadow-lg shadow-cyan-500/20"
+                disabled={saving}
+                className="flex items-center gap-2 px-6 py-3 rounded-xl bg-cyan-500 text-slate-900 font-bold hover:bg-cyan-400 transition-all shadow-lg shadow-cyan-500/20 disabled:opacity-50"
               >
-                <Save size={18} /> Save Changes
+                {saving ? "Saving..." : <><Save size={18} /> Save Changes</>}
               </button>
             </>
           ) : (
@@ -144,27 +163,24 @@ export const Profile = () => {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2 space-y-8">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <ProfileCard title="Company Details" icon={Building2}>
-              <DetailItem label="Legal Name" value={profileData.legal_name} name="legal_name" isEditing={isEditing} onChange={handleInputChange} />
-              <DetailItem label="Registration Type" value={profileData.reg_type} name="reg_type" isEditing={isEditing} onChange={handleInputChange} />
-              <DetailItem label="Industry" value={profileData.industry} name="industry" isEditing={isEditing} onChange={handleInputChange} />
-              <DetailItem label="Company Size" value={profileData.size} name="size" isEditing={isEditing} onChange={handleInputChange} />
+            <ProfileCard title="Contractor Profile" icon={Building2}>
+              <DetailItem label="Contractor Type" value={formData.contractor_type} name="contractor_type" isEditing={isEditing} onChange={handleInputChange} />
+              <DetailItem label="Industry" value="Infrastructure & Technology" name="industry" isEditing={false} onChange={() => {}} />
+              <DetailItem label="Company Size" value="250 - 500 Employees" name="size" isEditing={false} onChange={() => {}} />
             </ProfileCard>
 
             <ProfileCard title="Identification" icon={CreditCard}>
-              <DetailItem label="PAN Number" value={profileData.pan} name="pan" isEditing={isEditing} onChange={handleInputChange} />
-              <DetailItem label="GSTIN" value={profileData.gstin} name="gstin" isEditing={isEditing} onChange={handleInputChange} />
-              <DetailItem label="License Number" value={profileData.license} name="license" isEditing={isEditing} onChange={handleInputChange} />
-              <DetailItem label="MSME Status" value={profileData.msme} name="msme" isEditing={isEditing} onChange={handleInputChange} />
+              <DetailItem label="PAN Number" value={formData.pan} name="pan" isEditing={isEditing} onChange={handleInputChange} />
+              <DetailItem label="GSTIN" value={formData.gstin} name="gstin" isEditing={isEditing} onChange={handleInputChange} />
+              <DetailItem label="License Number" value={formData.license} name="license" isEditing={isEditing} onChange={handleInputChange} />
             </ProfileCard>
           </div>
 
           <ProfileCard title="Contact Information" icon={Mail}>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <DetailItem label="Primary Email" value={profileData.email} name="email" isEditing={isEditing} onChange={handleInputChange} icon={Mail} />
-              <DetailItem label="Phone Number" value={profileData.phone} name="phone" isEditing={isEditing} onChange={handleInputChange} icon={Phone} />
-              <DetailItem label="Headquarters" value={profileData.address} name="address" isEditing={isEditing} onChange={handleInputChange} icon={MapPin} />
-              <DetailItem label="Website" value={profileData.website} name="website" isEditing={isEditing} onChange={handleInputChange} icon={ExternalLink} />
+              <DetailItem label="Primary Email" value={formData.email} name="email" isEditing={isEditing} onChange={handleInputChange} icon={Mail} />
+              <DetailItem label="Phone Number" value={formData.phone} name="phone" isEditing={isEditing} onChange={handleInputChange} icon={Phone} />
+              <DetailItem label="Headquarters" value={formData.address} name="address" isEditing={isEditing} onChange={handleInputChange} icon={MapPin} />
             </div>
           </ProfileCard>
         </div>

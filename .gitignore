@@ -56,3 +56,4 @@ Thumbs.db
 temp_pdfs/
 backend/venv/
 backend/__pycache__/
+backend/uploads/

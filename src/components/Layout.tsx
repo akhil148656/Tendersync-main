@@ -16,6 +16,7 @@ import {
   LogOut
 } from 'lucide-react';
 import { cn } from '../lib/utils';
+import { useProfile } from '../contexts/ProfileContext';
 
 interface SidebarItemProps {
   icon: React.ElementType;
@@ -52,6 +53,7 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const location = useLocation();
   const navigate = useNavigate();
+  const { profile } = useProfile();
 
   const menuItems = [
     { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard' },
@@ -133,11 +135,11 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
 
             <div className="flex items-center gap-3 pl-6 border-l border-white/10">
               <div className="text-right hidden sm:block">
-                <p className="text-sm font-bold text-white">Acme Corp</p>
-                <p className="text-xs text-slate-500">Premium Plan</p>
+                <p className="text-sm font-bold text-white">{profile?.company_name || 'Acme Corp'}</p>
+                <p className="text-xs text-slate-500">{profile?.contractor_type || 'Premium Plan'}</p>
               </div>
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-slate-700 to-slate-900 border border-white/10 flex items-center justify-center text-cyan-400 font-bold shadow-lg">
-                TS
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-slate-700 to-slate-900 border border-white/10 flex items-center justify-center text-cyan-400 font-bold shadow-lg uppercase">
+                {profile?.avatar_initials || 'TS'}
               </div>
             </div>
           </div>

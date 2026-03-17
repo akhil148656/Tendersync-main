@@ -21,6 +21,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import ReactMarkdown from 'react-markdown';
 import { FinancialAnalysisModal } from '../components/FinancialAnalysisModal';
+import { BidSubmissionModal } from '../components/BidSubmissionModal';
 import { Calculator, MessageCircle } from 'lucide-react';
 
 interface Tender {
@@ -41,28 +42,11 @@ export const TenderDetail = () => {
   const [tender, setTender] = React.useState<Tender | null>(null);
   const [loading, setLoading] = React.useState(true);
   const [isAnalysisOpen, setIsAnalysisOpen] = React.useState(false);
+  const [isBidModalOpen, setIsBidModalOpen] = React.useState(false);
+  const [dynamicAnalysis, setDynamicAnalysis] = React.useState<any>(null);
 
-  const handleAccept = async () => {
-    if (!tender) return;
-    try {
-      const { error } = await supabase
-        .from('bids')
-        .insert({
-          tender_id: tender.tender_id,
-          tender_name: tender.title,
-          amount: 500000, // Mock amount or prompt user
-          status: 'Pending',
-          ai_recommendation: tender.ai_summary.substring(0, 200),
-          win_probability: 78, // Mock or calculated
-          risk_score: tender.risk_score || 0
-        });
-      
-      if (error && error.code !== '23505') throw error; // 23505 is unique violation
-      window.location.href = '/bids';
-    } catch (error) {
-      console.error('Error accepting bid:', error);
-      alert('Failed to accept bid. Make sure the database is ready.');
-    }
+  const handleAccept = () => {
+    setIsBidModalOpen(true);
   };
 
   const handleReject = () => {
@@ -163,6 +147,13 @@ export const TenderDetail = () => {
         tender={tender} 
         isOpen={isAnalysisOpen} 
         onClose={() => setIsAnalysisOpen(false)} 
+        onAnalysisComplete={(data: any) => setDynamicAnalysis(data)}
+      />
+
+      <BidSubmissionModal 
+        tender={tender} 
+        isOpen={isBidModalOpen} 
+        onClose={() => setIsBidModalOpen(false)} 
       />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -207,10 +198,26 @@ export const TenderDetail = () => {
           <div className="glass-card">
             <div className="flex justify-between items-center mb-6">
               <h3 className="text-xl font-bold text-white">Technical Specification Match</h3>
-              <span className="px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-500 text-xs font-bold">94% Match</span>
+              <span className="px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-500 text-xs font-bold">
+                {dynamicAnalysis ? "Dynamic Match" : "94% Match"}
+              </span>
             </div>
             <div className="space-y-4">
-              {[
+              {dynamicAnalysis?.comparison ? (
+                dynamicAnalysis.comparison.map((item: any, i: number) => (
+                  <div key={i} className="flex items-center justify-between p-4 rounded-xl bg-white/5 border border-white/5">
+                    <div className="flex items-center gap-3">
+                      {item.status.toLowerCase().includes('match') ? (
+                        <CheckCircle2 size={18} className="text-emerald-500" />
+                      ) : (
+                        <AlertCircle size={18} className="text-amber-500" />
+                      )}
+                      <span className="text-sm font-medium text-slate-200">{item.requirement}</span>
+                    </div>
+                    <span className="text-xs text-slate-500 font-mono truncate max-w-[150px]">{item.user_data}</span>
+                  </div>
+                ))
+              ) : [
                 { spec: '4K Resolution Support', status: 'match', product: 'SR-42U-PRO-X' },
                 { spec: 'Night Vision (up to 50m)', status: 'match', product: 'SR-42U-PRO-X' },
                 { spec: 'IP67 Weatherproof Rating', status: 'match', product: 'SR-42U-PRO-X' },
@@ -246,13 +253,22 @@ export const TenderDetail = () => {
               <div className="space-y-4">
                 <div className="flex justify-between items-center">
                   <span className="text-sm text-slate-400">Win Probability</span>
-                  <span className="text-lg font-bold text-emerald-500">78%</span>
+                  <span className="text-lg font-bold text-emerald-500">
+                    {dynamicAnalysis ? `${100 - dynamicAnalysis.risk_assessment.detailed_score}%` : `${100 - (tender.risk_score ?? 22)}%`}
+                  </span>
                 </div>
                 <div className="w-full h-2 bg-white/5 rounded-full overflow-hidden">
-                  <div className="w-[78%] h-full bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]" />
+                  <div 
+                    className="h-full bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)] transition-all duration-1000" 
+                    style={{ width: dynamicAnalysis ? `${100 - dynamicAnalysis.risk_assessment.detailed_score}%` : `${100 - (tender.risk_score ?? 22)}%` }}
+                  />
                 </div>
                 <p className="text-sm text-slate-300 leading-relaxed italic">
-                  <ReactMarkdown>{tender.ai_summary ? `Based on AI Summary: ${tender.ai_summary.substring(0, 150)}...` : `"AI Analysis pending processing. Please check back later for matched probabilities."`}</ReactMarkdown>
+                  {dynamicAnalysis ? (
+                    dynamicAnalysis.profit_analysis.summary.substring(0, 150) + "..."
+                  ) : (
+                    <ReactMarkdown>{tender.ai_summary ? `Based on AI Summary: ${tender.ai_summary.substring(0, 150)}...` : `"AI Analysis pending processing. Please check back later for matched probabilities."`}</ReactMarkdown>
+                  )}
                 </p>
               </div>
             </div>
@@ -269,23 +285,28 @@ export const TenderDetail = () => {
                   <span className="text-sm text-slate-400">Risk Score</span>
                   <span className={cn(
                     "text-lg font-bold",
-                    (tender.risk_score || 0) > 50 ? "text-rose-500" : "text-amber-500"
-                  )}>{tender.risk_score || 0}%</span>
+                    (dynamicAnalysis?.risk_assessment.detailed_score || tender.risk_score || 0) > 60 ? "text-rose-500" : 
+                    (dynamicAnalysis?.risk_assessment.detailed_score || tender.risk_score || 0) > 30 ? "text-amber-500" : "text-emerald-500"
+                  )}>{dynamicAnalysis?.risk_assessment.detailed_score || tender.risk_score || 0}%</span>
                 </div>
                 <div className="w-full h-2 bg-white/5 rounded-full overflow-hidden">
                   <div 
                     className={cn(
                       "h-full transition-all duration-1000",
-                      (tender.risk_score || 0) > 50 ? "bg-rose-500" : "bg-amber-500"
+                      (dynamicAnalysis?.risk_assessment.detailed_score || tender.risk_score || 0) > 60 ? "bg-rose-500" : 
+                      (dynamicAnalysis?.risk_assessment.detailed_score || tender.risk_score || 0) > 30 ? "bg-amber-500" : "bg-emerald-500"
                     )} 
-                    style={{ width: `${tender.risk_score || 0}%` }}
+                    style={{ width: `${dynamicAnalysis?.risk_assessment.detailed_score || tender.risk_score || 0}%` }}
                   />
                 </div>
                 <p className="text-xs text-slate-400 leading-relaxed">
-                  { (tender.risk_score || 0) > 50 
-                    ? "Warning: High risk detected due to stringent technical requirements and tight timelines."
-                    : "Moderate risk. Compliance requirements are standard for this category."
-                  }
+                  { dynamicAnalysis?.risk_assessment.gap_analysis.substring(0, 150) || ( 
+                    (tender.risk_score || 0) > 60 
+                      ? "Warning: High risk detected due to stringent technical requirements and tight timelines."
+                      : (tender.risk_score || 0) > 30 
+                        ? "Moderate risk. Compliance requirements are standard for this category."
+                        : "Low risk. Requirements are well-defined and match standard profiles."
+                  )}
                 </p>
               </div>
             </div>

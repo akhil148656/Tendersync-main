@@ -12,13 +12,14 @@ import {
   AlertCircle,
   Eye,
   Trash2,
-  ExternalLink
+  ExternalLink,
+  FileSearch
 } from 'lucide-react';
 import { useNavigate, Link } from 'react-router-dom';
 import { MOCK_BIDS } from '../data/mockData';
 import { cn } from '../lib/utils';
-
 import { supabase } from '../lib/supabase';
+import { BidDetailsModal } from '../components/BidDetailsModal';
 
 export const MyBids = () => {
   const [bids, setBids] = React.useState<any[]>([]);
@@ -26,18 +27,25 @@ export const MyBids = () => {
 
   const [errorHeader, setErrorHeader] = React.useState<string | null>(null);
   const [openMenuId, setOpenMenuId] = React.useState<string | null>(null);
+  const [confirmDeleteId, setConfirmDeleteId] = React.useState<string | null>(null);
+  const [selectedBidId, setSelectedBidId] = React.useState<string | null>(null);
+  const [isDetailsOpen, setIsDetailsOpen] = React.useState(false);
+  const [isDeleting, setIsDeleting] = React.useState(false);
   const navigate = useNavigate();
 
   // Close menu when clicking outside
   React.useEffect(() => {
-    const handleClickOutside = () => setOpenMenuId(null);
+    const handleClickOutside = () => {
+      setOpenMenuId(null);
+      setConfirmDeleteId(null);
+    };
     window.addEventListener('click', handleClickOutside);
     return () => window.removeEventListener('click', handleClickOutside);
   }, []);
 
   const handleDeleteBid = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    if (!window.confirm("Are you sure you want to remove this bid from your dashboard?")) return;
+    setIsDeleting(true);
     
     try {
       const { error } = await supabase
@@ -50,9 +58,12 @@ export const MyBids = () => {
       // Update local state
       setBids(prev => prev.filter(b => b.id !== id));
       setOpenMenuId(null);
+      setConfirmDeleteId(null);
     } catch (error) {
       console.error('Error deleting bid:', error);
       alert("Failed to delete bid. Please try again.");
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -192,6 +203,7 @@ export const MyBids = () => {
                           onClick={(e) => {
                             e.stopPropagation();
                             setOpenMenuId(openMenuId === bid.id ? null : bid.id);
+                            setConfirmDeleteId(null);
                           }}
                           className="p-2 hover:bg-white/5 rounded-lg text-slate-500 hover:text-white transition-all"
                         >
@@ -206,20 +218,45 @@ export const MyBids = () => {
                             onClick={(e) => e.stopPropagation()}
                           >
                             <div className="py-1">
-                              <Link 
-                                to={`/tender/${bid.tender_id}`}
-                                className="flex items-center gap-2 px-4 py-2.5 text-sm text-slate-300 hover:bg-white/5 hover:text-cyan-400 transition-all"
+                              <button 
+                                onClick={() => {
+                                  setSelectedBidId(bid.id);
+                                  setIsDetailsOpen(true);
+                                  setOpenMenuId(null);
+                                }}
+                                className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-slate-300 hover:bg-white/5 hover:text-cyan-400 transition-all font-medium"
                               >
                                 <Eye size={14} />
                                 View Details
-                              </Link>
-                              <button 
-                                onClick={(e) => handleDeleteBid(bid.id, e)}
-                                className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-rose-500 hover:bg-rose-500/10 transition-all font-medium border-t border-white/5"
-                              >
-                                <Trash2 size={14} />
-                                Remove Bid
                               </button>
+                              {confirmDeleteId === bid.id ? (
+                                <div className="p-2 bg-rose-500/10 border-t border-white/5 space-y-2">
+                                  <p className="text-[10px] text-rose-400 font-bold uppercase text-center px-2">Confirm Removal?</p>
+                                  <div className="flex gap-1">
+                                    <button 
+                                      onClick={(e) => handleDeleteBid(bid.id, e)}
+                                      disabled={isDeleting}
+                                      className="flex-1 py-1.5 rounded-lg bg-rose-500 text-white text-[10px] font-bold hover:bg-rose-600 transition-all disabled:opacity-50"
+                                    >
+                                      {isDeleting ? "..." : "Yes, Remove"}
+                                    </button>
+                                    <button 
+                                      onClick={(e) => { e.stopPropagation(); setConfirmDeleteId(null); }}
+                                      className="flex-1 py-1.5 rounded-lg bg-white/10 text-slate-300 text-[10px] font-bold hover:bg-white/20 transition-all"
+                                    >
+                                      No
+                                    </button>
+                                  </div>
+                                </div>
+                              ) : (
+                                <button 
+                                  onClick={(e) => { e.stopPropagation(); setConfirmDeleteId(bid.id); }}
+                                  className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-rose-500 hover:bg-rose-500/10 transition-all font-medium border-t border-white/5"
+                                >
+                                  <Trash2 size={14} />
+                                  Remove Bid
+                                </button>
+                              )}
                             </div>
                           </motion.div>
                         )}
@@ -263,6 +300,12 @@ export const MyBids = () => {
           </div>
         </div>
       </div>
+
+      <BidDetailsModal 
+        bidId={selectedBidId}
+        isOpen={isDetailsOpen}
+        onClose={() => setIsDetailsOpen(false)}
+      />
     </div>
   );
 };
