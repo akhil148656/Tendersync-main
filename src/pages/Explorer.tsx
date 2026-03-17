@@ -7,22 +7,76 @@ import {
   ArrowRight,
   Calendar,
   Building2,
-  Tag
+  Tag,
+  RotateCw
 } from 'lucide-react';
 import { MOCK_TENDERS } from '../data/mockData';
 import { cn } from '../lib/utils';
 import { Link } from 'react-router-dom';
+import { supabase } from '../lib/supabase';
+
+interface Tender {
+  id: number;
+  tender_id: string;
+  title: string;
+  description: string;
+  deadline: string;
+  url: string;
+  ai_summary: string;
+  created_at: string;
+}
 
 export const Explorer = () => {
   const [activeSource, setActiveSource] = useState('All');
   const [activeStatus, setActiveStatus] = useState('All');
+  const [tenders, setTenders] = useState<Tender[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const sources = ['All', 'GeM', 'eProcure', 'State Portal'];
+  const sources = ['All', 'GeM', 'eProcure', 'Other'];
   const statuses = ['All', 'New', 'Processing', 'Ready'];
 
-  const filteredTenders = MOCK_TENDERS.filter(t => {
-    const sourceMatch = activeSource === 'All' || t.source === activeSource;
-    const statusMatch = activeStatus === 'All' || t.status === activeStatus;
+  const fetchTenders = async () => {
+    setLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('tenders')
+        .select('*')
+        .order('created_at', { ascending: false });
+      
+      if (error) throw error;
+      if (data) setTenders(data as Tender[]);
+    } catch (error) {
+      console.error('Error fetching tenders:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  React.useEffect(() => {
+    fetchTenders();
+
+    const channel = supabase
+      .channel('public:tenders:explorer')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'tenders' }, () => {
+        fetchTenders();
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
+
+  const handleRefresh = () => {
+    fetchTenders();
+  };
+
+  const filteredTenders = tenders.filter(t => {
+    const source = t.tender_id?.startsWith('GEM') ? 'GeM' : t.tender_id?.startsWith('EPROC') ? 'eProcure' : 'Other';
+    const sourceMatch = activeSource === 'All' || source === activeSource;
+    // Since real db doesn't naturally have a 'status' right now, we can hardcode for demo or compute it.
+    // Let's assume all fetched items have AI Summary processing done, so they are 'Ready'
+    const statusMatch = activeStatus === 'All' || activeStatus === 'Ready'; 
     return sourceMatch && statusMatch;
   });
 
@@ -91,6 +145,17 @@ export const Explorer = () => {
               </div>
               <div className="flex items-center gap-2">
                 <span className="text-xs text-slate-500">Showing {filteredTenders.length} results</span>
+                <button 
+                  onClick={handleRefresh}
+                  disabled={loading}
+                  className={cn(
+                    "p-2 rounded-lg bg-white/5 border border-white/10 text-slate-400 hover:text-white transition-all",
+                    loading && "opacity-50 cursor-not-allowed"
+                  )}
+                  title="Refresh Tenders"
+                >
+                  <RotateCw size={16} className={cn(loading && "animate-spin")} />
+                </button>
                 <button className="p-2 rounded-lg bg-white/5 border border-white/10 text-slate-400 hover:text-white transition-all">
                   <Filter size={16} />
                 </button>
@@ -110,35 +175,48 @@ export const Explorer = () => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-white/5">
-                  {filteredTenders.map((tender) => (
+                  {loading ? (
+                    <tr>
+                      <td colSpan={6} className="px-6 py-8 text-center text-slate-400">
+                        <div className="flex items-center justify-center gap-3">
+                           <div className="w-5 h-5 border-2 border-cyan-500 border-t-transparent rounded-full animate-spin"></div>
+                           Fetching live tenders...
+                        </div>
+                      </td>
+                    </tr>
+                  ) : filteredTenders.length === 0 ? (
+                    <tr>
+                      <td colSpan={6} className="px-6 py-8 text-center text-slate-400">
+                        No tenders found. Run the Python scraper to populate data!
+                      </td>
+                    </tr>
+                  ) : filteredTenders.map((tender) => {
+                    const source = tender.tender_id?.startsWith('GEM') ? 'GeM' : tender.tender_id?.startsWith('EPROC') ? 'eProcure' : 'Other';
+                    
+                    return (
                     <tr key={tender.id} className="hover:bg-white/5 transition-colors group">
-                      <td className="px-6 py-4 font-mono text-sm text-cyan-400">{tender.id}</td>
+                      <td className="px-6 py-4 font-mono text-sm text-cyan-400">{tender.tender_id}</td>
                       <td className="px-6 py-4">
-                        <p className="text-sm font-medium text-white group-hover:text-cyan-400 transition-colors">{tender.title}</p>
+                        <p className="text-sm font-medium text-white group-hover:text-cyan-400 transition-colors line-clamp-2">{tender.title}</p>
                       </td>
                       <td className="px-6 py-4">
                         <span className={cn(
                           "px-2 py-1 rounded-md text-[10px] font-bold uppercase",
-                          tender.source === 'eProcure' ? "bg-blue-500/20 text-blue-400" : 
-                          tender.source === 'GeM' ? "bg-orange-500/20 text-orange-400" : "bg-purple-500/20 text-purple-400"
+                          source === 'eProcure' ? "bg-blue-500/20 text-blue-400" : 
+                          source === 'GeM' ? "bg-orange-500/20 text-orange-400" : "bg-purple-500/20 text-purple-400"
                         )}>
-                          {tender.source}
+                          {source}
                         </span>
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-2 text-sm text-slate-400">
                           <Calendar size={14} />
-                          {tender.deadline}
+                          {tender.deadline || "N/A"}
                         </div>
                       </td>
                       <td className="px-6 py-4">
-                        <span className={cn(
-                          "px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider",
-                          tender.status === 'Ready' ? "bg-emerald-500/10 text-emerald-500 border border-emerald-500/20" : 
-                          tender.status === 'Processing' ? "bg-amber-500/10 text-amber-500 border border-amber-500/20" : 
-                          "bg-cyan-500/10 text-cyan-500 border border-cyan-500/20"
-                        )}>
-                          {tender.status}
+                        <span className="px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-emerald-500/10 text-emerald-500 border border-emerald-500/20">
+                          Ready
                         </span>
                       </td>
                       <td className="px-6 py-4 text-right">
@@ -150,7 +228,8 @@ export const Explorer = () => {
                         </Link>
                       </td>
                     </tr>
-                  ))}
+                    );
+                  })}
                 </tbody>
               </table>
             </div>

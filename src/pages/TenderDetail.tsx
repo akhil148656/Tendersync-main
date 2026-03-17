@@ -8,35 +8,160 @@ import {
   CheckCircle2, 
   Clock, 
   AlertCircle,
+  AlertTriangle,
   Download,
   ExternalLink,
-  Zap
+  Zap,
+  Check,
+  X
 } from 'lucide-react';
 import { MOCK_TENDERS } from '../data/mockData';
 import { cn } from '../lib/utils';
+import { useParams, useNavigate } from 'react-router-dom';
+import { supabase } from '../lib/supabase';
+import ReactMarkdown from 'react-markdown';
+import { FinancialAnalysisModal } from '../components/FinancialAnalysisModal';
+import { Calculator, MessageCircle } from 'lucide-react';
+
+interface Tender {
+  id: number;
+  tender_id: string;
+  title: string;
+  description: string;
+  deadline: string;
+  url: string;
+  ai_summary: string;
+  risk_score: number;
+  created_at: string;
+}
 
 export const TenderDetail = () => {
-  const tender = MOCK_TENDERS[0]; // Just for demo
+  const { id } = useParams();
+  const navigate = useNavigate();
+  const [tender, setTender] = React.useState<Tender | null>(null);
+  const [loading, setLoading] = React.useState(true);
+  const [isAnalysisOpen, setIsAnalysisOpen] = React.useState(false);
+
+  const handleAccept = async () => {
+    if (!tender) return;
+    try {
+      const { error } = await supabase
+        .from('bids')
+        .insert({
+          tender_id: tender.tender_id,
+          tender_name: tender.title,
+          amount: 500000, // Mock amount or prompt user
+          status: 'Pending',
+          ai_recommendation: tender.ai_summary.substring(0, 200),
+          win_probability: 78, // Mock or calculated
+          risk_score: tender.risk_score || 0
+        });
+      
+      if (error && error.code !== '23505') throw error; // 23505 is unique violation
+      window.location.href = '/bids';
+    } catch (error) {
+      console.error('Error accepting bid:', error);
+      alert('Failed to accept bid. Make sure the database is ready.');
+    }
+  };
+
+  const handleReject = () => {
+    window.location.href = '/explorer';
+  };
+
+  React.useEffect(() => {
+    const fetchTender = async () => {
+      try {
+        // Try fetching by numeric ID first
+        let query = supabase.from('tenders').select('*');
+        
+        if (!isNaN(Number(id))) {
+          const { data, error } = await query.eq('id', id).single();
+          if (!error && data) {
+            setTender(data as Tender);
+            return;
+          }
+        }
+
+        // If numeric fetch fails or id is string, try tender_id
+        const { data, error } = await supabase
+          .from('tenders')
+          .select('*')
+          .eq('tender_id', id)
+          .single();
+        
+        if (error) throw error;
+        if (data) setTender(data as Tender);
+      } catch (error) {
+        console.error('Error fetching tender:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (id) {
+       fetchTender();
+    }
+  }, [id]);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center p-12">
+        <div className="w-8 h-8 border-4 border-cyan-500 border-t-transparent rounded-full animate-spin"></div>
+      </div>
+    );
+  }
+
+  if (!tender) {
+    return (
+      <div className="text-center p-12 text-slate-400">
+        Tender not found.
+      </div>
+    );
+  }
+
+  const source = tender.tender_id?.startsWith('GEM') ? 'GeM' : tender.tender_id?.startsWith('EPROC') ? 'eProcure' : 'Other';
 
   return (
     <div className="space-y-8">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
         <div>
           <div className="flex items-center gap-3 mb-2">
-            <span className="px-2 py-1 rounded-md bg-cyan-500/20 text-cyan-400 text-[10px] font-bold uppercase tracking-wider">{tender.source}</span>
-            <span className="text-slate-500 font-mono text-sm">{tender.id}</span>
+            <span className="px-2 py-1 rounded-md bg-cyan-500/20 text-cyan-400 text-[10px] font-bold uppercase tracking-wider">{source}</span>
+            <span className="text-slate-500 font-mono text-sm">{tender.tender_id}</span>
           </div>
           <h2 className="text-3xl font-bold text-white">{tender.title}</h2>
         </div>
         <div className="flex items-center gap-3">
-          <button className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-slate-300 text-sm font-medium hover:bg-white/10 transition-all">
-            <Download size={16} /> Download RFP
+          <a href={tender.url || '#'} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-slate-300 text-sm font-medium hover:bg-white/10 transition-all">
+            <ExternalLink size={16} /> Original Setup
+          </a>
+          <button 
+            onClick={() => setIsAnalysisOpen(true)}
+            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-purple-500/10 border border-purple-500/20 text-purple-400 text-sm font-medium hover:bg-purple-500/20 transition-all font-sans"
+          >
+            <Calculator size={16} /> Analyze P&L & Risk
           </button>
-          <button className="flex items-center gap-2 px-6 py-2 rounded-xl bg-cyan-500 text-slate-900 text-sm font-bold shadow-lg shadow-cyan-500/20 hover:bg-cyan-400 transition-all">
+          <button 
+            onClick={() => navigate('/ai-assistant', { state: { tenderContext: tender } })}
+            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-orange-500/10 border border-orange-500/20 text-orange-400 text-sm font-medium hover:bg-orange-500/20 transition-all font-sans"
+          >
+            <MessageCircle size={16} /> Ask Assistant
+          </button>
+          <button 
+            onClick={handleAccept}
+            className="flex items-center gap-2 px-6 py-2 rounded-xl bg-cyan-500 text-slate-900 text-sm font-bold shadow-lg shadow-cyan-500/20 hover:bg-cyan-400 transition-all font-sans"
+          >
             Prepare Bid
           </button>
         </div>
       </div>
+
+      <FinancialAnalysisModal 
+        tender={tender} 
+        isOpen={isAnalysisOpen} 
+        onClose={() => setIsAnalysisOpen(false)} 
+      />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2 space-y-8">
@@ -44,21 +169,35 @@ export const TenderDetail = () => {
           <div className="glass-card">
             <h3 className="text-xl font-bold text-white mb-4">Project Overview</h3>
             <p className="text-slate-400 leading-relaxed mb-6">
-              {tender.description} This project requires a comprehensive end-to-end solution including hardware procurement, software integration, and 3-year maintenance support.
+              {tender.description || "No description provided."}
             </p>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-6">
               <div>
-                <p className="text-xs text-slate-500 uppercase font-bold mb-1">Budget Estimate</p>
-                <p className="text-lg font-bold text-white">₹4.2 Crores</p>
+                <p className="text-xs text-slate-500 uppercase font-bold mb-1">Status</p>
+                <p className="text-lg font-bold text-white mb-2">Ready for Bid</p>
               </div>
               <div>
-                <p className="text-xs text-slate-500 uppercase font-bold mb-1">EMD Amount</p>
-                <p className="text-lg font-bold text-white">₹8.4 Lakhs</p>
+                <p className="text-xs text-slate-500 uppercase font-bold mb-1">Deadline Date</p>
+                <p className="text-lg font-bold text-white mb-2">{tender.deadline || "TBA"}</p>
               </div>
               <div>
-                <p className="text-xs text-slate-500 uppercase font-bold mb-1">Pre-bid Date</p>
-                <p className="text-lg font-bold text-white">2026-03-28</p>
+                <p className="text-xs text-slate-500 uppercase font-bold mb-1">Record ID</p>
+                <p className="text-lg font-bold text-white mb-2">{tender.id}</p>
               </div>
+            </div>
+            
+            {/* Display the AI Summary */}
+            <div className="mt-8 border-t border-white/10 pt-6">
+               <h4 className="text-md font-bold text-cyan-400 mb-4 flex items-center gap-2">
+                 <Zap size={16} /> AI Extracted Summary
+               </h4>
+               <div className="prose prose-invert max-w-none text-slate-300 text-sm leading-relaxed gemini-output">
+                 {tender.ai_summary ? (
+                    <ReactMarkdown>{tender.ai_summary}</ReactMarkdown>
+                 ) : (
+                    <p className="italic text-slate-500">No AI processing data available for this tender.</p>
+                 )}
+               </div>
             </div>
           </div>
 
@@ -93,25 +232,76 @@ export const TenderDetail = () => {
         </div>
 
         <div className="space-y-8">
-          {/* AI Recommendation */}
-          <div className="glass-card bg-gradient-to-br from-cyan-900/20 to-purple-900/20 border-cyan-500/20">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="p-2 rounded-lg bg-cyan-500 text-white shadow-lg shadow-cyan-500/20">
-                <Zap size={20} />
+          {/* AI Recommendation & Risk */}
+          <div className="space-y-6">
+            <div className="glass-card bg-gradient-to-br from-cyan-900/20 to-purple-900/20 border-cyan-500/20">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="p-2 rounded-lg bg-cyan-500 text-white shadow-lg shadow-cyan-500/20">
+                  <Zap size={20} />
+                </div>
+                <h3 className="text-lg font-bold text-white">AI Bid Strategy</h3>
               </div>
-              <h3 className="text-lg font-bold text-white">AI Bid Strategy</h3>
+              <div className="space-y-4">
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-slate-400">Win Probability</span>
+                  <span className="text-lg font-bold text-emerald-500">78%</span>
+                </div>
+                <div className="w-full h-2 bg-white/5 rounded-full overflow-hidden">
+                  <div className="w-[78%] h-full bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]" />
+                </div>
+                <p className="text-sm text-slate-300 leading-relaxed italic">
+                  <ReactMarkdown>{tender.ai_summary ? `Based on AI Summary: ${tender.ai_summary.substring(0, 150)}...` : `"AI Analysis pending processing. Please check back later for matched probabilities."`}</ReactMarkdown>
+                </p>
+              </div>
             </div>
-            <div className="space-y-4">
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-slate-400">Win Probability</span>
-                <span className="text-lg font-bold text-emerald-500">78%</span>
+
+            <div className="glass-card border-amber-500/20 bg-amber-500/5">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="p-2 rounded-lg bg-amber-500 text-white">
+                  <AlertTriangle size={20} />
+                </div>
+                <h3 className="text-lg font-bold text-white">Risk Assessment</h3>
               </div>
-              <div className="w-full h-2 bg-white/5 rounded-full overflow-hidden">
-                <div className="w-[78%] h-full bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]" />
+              <div className="space-y-4">
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-slate-400">Risk Score</span>
+                  <span className={cn(
+                    "text-lg font-bold",
+                    (tender.risk_score || 0) > 50 ? "text-rose-500" : "text-amber-500"
+                  )}>{tender.risk_score || 0}%</span>
+                </div>
+                <div className="w-full h-2 bg-white/5 rounded-full overflow-hidden">
+                  <div 
+                    className={cn(
+                      "h-full transition-all duration-1000",
+                      (tender.risk_score || 0) > 50 ? "bg-rose-500" : "bg-amber-500"
+                    )} 
+                    style={{ width: `${tender.risk_score || 0}%` }}
+                  />
+                </div>
+                <p className="text-xs text-slate-400 leading-relaxed">
+                  { (tender.risk_score || 0) > 50 
+                    ? "Warning: High risk detected due to stringent technical requirements and tight timelines."
+                    : "Moderate risk. Compliance requirements are standard for this category."
+                  }
+                </p>
               </div>
-              <p className="text-sm text-slate-300 leading-relaxed italic">
-                "94% specification match detected. Estimated profit margin: +18%. Risk level: Low. Recommendation: Proceed with bid."
-              </p>
+            </div>
+            
+            {/* Accept / Reject Buttons */}
+            <div className="grid grid-cols-2 gap-4 pt-4">
+              <button 
+                onClick={handleReject}
+                className="flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-white/5 border border-white/10 text-rose-500 font-bold hover:bg-rose-500/10 transition-all"
+              >
+                <X size={18} /> Reject Bid
+              </button>
+              <button 
+                onClick={handleAccept}
+                className="flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-emerald-500 text-slate-900 font-bold hover:bg-emerald-400 transition-all shadow-lg shadow-emerald-500/20"
+              >
+                <Check size={18} /> Accept Bid
+              </button>
             </div>
           </div>
 

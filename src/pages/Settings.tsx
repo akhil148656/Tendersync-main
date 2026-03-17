@@ -44,8 +44,10 @@ const Toggle = ({ enabled, onChange }: { enabled: boolean, onChange: () => void 
 
 export const Settings = () => {
   const [notifications, setNotifications] = useState(true);
+  const [emailDigests, setEmailDigests] = useState(false);
   const [demoMode, setDemoMode] = useState(true);
   const [refreshInterval, setRefreshInterval] = useState('15');
+  const [showSaveSuccess, setShowSaveSuccess] = useState(false);
 
   return (
     <div className="max-w-4xl space-y-8">
@@ -98,7 +100,7 @@ export const Settings = () => {
               <p className="text-sm font-bold text-white">Email Digests</p>
               <p className="text-xs text-slate-500 mt-1">Weekly summary of market trends and bid performance.</p>
             </div>
-            <Toggle enabled={false} onChange={() => {}} />
+            <Toggle enabled={emailDigests} onChange={() => setEmailDigests(!emailDigests)} />
           </div>
         </SettingsSection>
 
@@ -124,13 +126,30 @@ export const Settings = () => {
           </div>
         </SettingsSection>
 
-        <div className="flex justify-end gap-4 pt-4">
-          <button className="px-8 py-3 rounded-xl border border-white/10 text-slate-400 font-bold hover:bg-white/5 transition-all">
-            Discard Changes
-          </button>
-          <button className="px-8 py-3 rounded-xl bg-cyan-500 text-slate-900 font-bold shadow-lg shadow-cyan-500/20 hover:bg-cyan-400 transition-all">
-            Save Configuration
-          </button>
+        <div className="flex flex-col gap-4">
+          {showSaveSuccess && (
+            <motion.div 
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-500 text-sm font-medium text-center"
+            >
+              Settings saved successfully!
+            </motion.div>
+          )}
+          <div className="flex justify-end gap-4 pt-4">
+            <button className="px-8 py-3 rounded-xl border border-white/10 text-slate-400 font-bold hover:bg-white/5 transition-all">
+              Discard Changes
+            </button>
+            <button 
+              onClick={() => {
+                setShowSaveSuccess(true);
+                setTimeout(() => setShowSaveSuccess(false), 3000);
+              }}
+              className="px-8 py-3 rounded-xl bg-cyan-500 text-slate-900 font-bold shadow-lg shadow-cyan-500/20 hover:bg-cyan-400 transition-all"
+            >
+              Save Configuration
+            </button>
+          </div>
         </div>
       </div>
     </div>

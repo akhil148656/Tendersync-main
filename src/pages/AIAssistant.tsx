@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
+import { useLocation } from 'react-router-dom';
 import { 
   Bot, 
   Send, 
@@ -13,10 +14,26 @@ import {
 import { cn } from '../lib/utils';
 
 export const AIAssistant = () => {
+  const location = useLocation();
+  const tenderContext = location.state?.tenderContext;
+
   const [messages, setMessages] = useState([
-    { role: 'assistant', content: 'Hello! I’m your TenderSync AI Assistant. I can help you analyze tenders and make smarter bidding decisions.' }
+    { 
+      role: 'assistant', 
+      content: tenderContext 
+        ? `Hello! I see you're analyzing the tender: **${tenderContext.title}** (${tenderContext.tender_id}). How can I help you regarding its specifications, risks, or strategy?`
+        : 'Hello! I’m your TenderSync AI Assistant. I can help you analyze tenders and make smarter bidding decisions.' 
+    }
   ]);
   const [input, setInput] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const scrollRef = React.useRef<HTMLDivElement>(null);
+
+  React.useEffect(() => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [messages, isLoading]);
 
   const suggestedPrompts = [
     'Should I bid on TND-2847?',
@@ -25,18 +42,58 @@ export const AIAssistant = () => {
     'Compare top 3 matching products'
   ];
 
-  const handleSend = () => {
-    if (!input.trim()) return;
-    setMessages([...messages, { role: 'user', content: input }]);
-    setInput('');
+  const handleSend = async () => {
+    if (!input.trim() || isLoading) return;
     
-    // Simulate AI response
-    setTimeout(() => {
+    const userMessage = { role: 'user', content: input };
+    const newMessages = [...messages, userMessage];
+    setMessages(newMessages);
+    setInput('');
+    setIsLoading(true);
+
+    // Prepare history for API, injecting context into the first user interaction if present
+    const apiMessages = [...messages];
+    if (tenderContext && messages.length === 1) {
+      apiMessages.push({
+        role: 'user',
+        content: `[CONTEXT] I am currently viewing this tender:
+Title: ${tenderContext.title}
+ID: ${tenderContext.tender_id}
+Summary: ${tenderContext.ai_summary || "Pending analysis"}
+Description: ${tenderContext.description}
+
+Question: ${input}`
+      });
+    } else {
+      apiMessages.push(userMessage);
+    }
+    
+    try {
+      const response = await fetch('http://localhost:8000/api/chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ messages: apiMessages }),
+      });
+      
+      const data = await response.json();
+      if (data.content) {
+        setMessages(prev => [...prev, { 
+          role: 'assistant', 
+          content: data.content 
+        }]);
+      } else {
+        throw new Error(data.detail || 'Failed to get response');
+      }
+    } catch (error: any) {
       setMessages(prev => [...prev, { 
         role: 'assistant', 
-        content: `Based on my analysis of ${input.includes('TND') ? input : 'the current tender'}, I recommend proceeding with a 15% margin optimization. Your technical match score is 92%.` 
+        content: `Error: ${error.message}. Make sure the backend server (server.py) is running on port 8000!` 
       }]);
-    }, 1000);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -77,10 +134,27 @@ export const AIAssistant = () => {
                   "p-5 rounded-[24px]",
                   msg.role === 'assistant' ? "bg-white/5 text-slate-200 rounded-tl-none" : "bg-cyan-500 text-slate-900 font-medium rounded-tr-none"
                 )}>
-                  <p className="text-sm leading-relaxed">{msg.content}</p>
+                  <p className="text-sm leading-relaxed whitespace-pre-wrap">{msg.content}</p>
                 </div>
               </motion.div>
             ))}
+            {isLoading && (
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="flex gap-4 max-w-[80%]"
+              >
+                <div className="w-10 h-10 rounded-2xl bg-cyan-500 text-white flex items-center justify-center animate-pulse">
+                  <Bot size={20} />
+                </div>
+                <div className="p-5 rounded-[24px] bg-white/5 text-slate-400 rounded-tl-none flex items-center gap-2">
+                  <div className="w-2 h-2 bg-cyan-500 rounded-full animate-bounce [animation-delay:-0.3s]" />
+                  <div className="w-2 h-2 bg-cyan-500 rounded-full animate-bounce [animation-delay:-0.15s]" />
+                  <div className="w-2 h-2 bg-cyan-500 rounded-full animate-bounce" />
+                </div>
+              </motion.div>
+            )}
+            <div ref={scrollRef} className="h-2" />
           </div>
 
           <div className="p-6 bg-white/5 border-t border-white/5 space-y-4">

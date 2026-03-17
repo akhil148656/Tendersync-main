@@ -13,9 +13,10 @@ import {
   AreaChart,
   Area
 } from 'recharts';
-import { TrendingUp, Activity, Target, PieChart } from 'lucide-react';
+import { TrendingUp, Activity, Target, PieChart, RefreshCw } from 'lucide-react';
+import { supabase } from '../lib/supabase';
 
-const data = [
+const mockHistoricalData = [
   { name: 'Oct', tenders: 120, match: 82, margin: 18, success: 65 },
   { name: 'Nov', tenders: 180, match: 84, margin: 21, success: 68 },
   { name: 'Dec', tenders: 200, match: 87, margin: 19, success: 70 },
@@ -41,16 +42,49 @@ const ChartCard = ({ title, icon: Icon, children }: any) => (
 );
 
 export const Analytics = () => {
+  const [dbData, setDbData] = React.useState<any[]>([]);
+  const [loading, setLoading] = React.useState(true);
+
+  const fetchAnalytics = async () => {
+    setLoading(true);
+    try {
+      const { data: bids } = await supabase.from('bids').select('status');
+      if (bids) {
+        const statusMap = bids.reduce((acc: any, curr: any) => {
+          acc[curr.status] = (acc[curr.status] || 0) + 1;
+          return acc;
+        }, {});
+        
+        const chartData = Object.keys(statusMap).map(key => ({
+          name: key,
+          count: statusMap[key]
+        }));
+        setDbData(chartData);
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  React.useEffect(() => {
+    fetchAnalytics();
+  }, []);
+
   return (
     <div className="space-y-8">
       <div className="flex justify-between items-end">
         <div>
           <h2 className="text-3xl font-bold text-white">Analytics & Insights</h2>
-          <p className="text-slate-400 mt-1">Performance metrics and market trends.</p>
+          <p className="text-slate-400 mt-1">Performance metrics and market trends from live data.</p>
         </div>
         <div className="flex gap-2">
-          <button className="px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-slate-300 text-sm font-medium hover:bg-white/10 transition-all">
-            Export PDF
+          <button 
+            onClick={fetchAnalytics}
+            className="p-2 rounded-xl bg-white/5 border border-white/10 text-slate-300 hover:text-cyan-400 transition-all"
+          >
+            <RefreshCw size={20} className={loading ? "animate-spin" : ""} />
           </button>
           <button className="px-4 py-2 rounded-xl bg-cyan-500 text-slate-900 text-sm font-bold hover:bg-cyan-400 transition-all">
             Generate AI Report
@@ -59,8 +93,34 @@ export const Analytics = () => {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        <ChartCard title="Tenders Processed" icon={Activity}>
-          <AreaChart data={data}>
+        <ChartCard title="Bid Status Distribution (Live)" icon={PieChart}>
+          <BarChart data={dbData.length > 0 ? dbData : [{name: 'No Bids', count: 0}]}>
+            <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
+            <XAxis dataKey="name" stroke="#64748b" fontSize={12} tickLine={false} axisLine={false} />
+            <YAxis stroke="#64748b" fontSize={12} tickLine={false} axisLine={false} />
+            <Tooltip 
+              contentStyle={{ backgroundColor: '#0f172a', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px' }}
+              itemStyle={{ color: '#00ffff' }}
+            />
+            <Bar dataKey="count" fill="#00f2ff" radius={[6, 6, 0, 0]} barSize={40} />
+          </BarChart>
+        </ChartCard>
+
+        <ChartCard title="Avg Spec Match %" icon={Target}>
+          <LineChart data={mockHistoricalData}>
+            <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
+            <XAxis dataKey="name" stroke="#64748b" fontSize={12} tickLine={false} axisLine={false} />
+            <YAxis stroke="#64748b" fontSize={12} tickLine={false} axisLine={false} domain={[80, 100]} />
+            <Tooltip 
+              contentStyle={{ backgroundColor: '#0f172a', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px' }}
+              itemStyle={{ color: '#bc13fe' }}
+            />
+            <Line type="monotone" dataKey="match" stroke="#bc13fe" strokeWidth={3} dot={{ fill: '#bc13fe', strokeWidth: 2, r: 4 }} activeDot={{ r: 6, strokeWidth: 0 }} />
+          </LineChart>
+        </ChartCard>
+
+        <ChartCard title="Tenders Processed (Growth)" icon={Activity}>
+          <AreaChart data={mockHistoricalData}>
             <defs>
               <linearGradient id="colorTenders" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="5%" stopColor="#00f2ff" stopOpacity={0.3}/>
@@ -78,34 +138,8 @@ export const Analytics = () => {
           </AreaChart>
         </ChartCard>
 
-        <ChartCard title="Avg Spec Match %" icon={Target}>
-          <LineChart data={data}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
-            <XAxis dataKey="name" stroke="#64748b" fontSize={12} tickLine={false} axisLine={false} />
-            <YAxis stroke="#64748b" fontSize={12} tickLine={false} axisLine={false} domain={[80, 100]} />
-            <Tooltip 
-              contentStyle={{ backgroundColor: '#0f172a', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px' }}
-              itemStyle={{ color: '#bc13fe' }}
-            />
-            <Line type="monotone" dataKey="match" stroke="#bc13fe" strokeWidth={3} dot={{ fill: '#bc13fe', strokeWidth: 2, r: 4 }} activeDot={{ r: 6, strokeWidth: 0 }} />
-          </LineChart>
-        </ChartCard>
-
-        <ChartCard title="Profit Margins %" icon={TrendingUp}>
-          <BarChart data={data}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
-            <XAxis dataKey="name" stroke="#64748b" fontSize={12} tickLine={false} axisLine={false} />
-            <YAxis stroke="#64748b" fontSize={12} tickLine={false} axisLine={false} />
-            <Tooltip 
-              contentStyle={{ backgroundColor: '#0f172a', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px' }}
-              itemStyle={{ color: '#00ffff' }}
-            />
-            <Bar dataKey="margin" fill="#00ffff" radius={[6, 6, 0, 0]} barSize={30} />
-          </BarChart>
-        </ChartCard>
-
-        <ChartCard title="Bid Success Rate %" icon={PieChart}>
-          <AreaChart data={data}>
+        <ChartCard title="Projected Success Rate %" icon={TrendingUp}>
+          <AreaChart data={mockHistoricalData}>
             <defs>
               <linearGradient id="colorSuccess" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="5%" stopColor="#10b981" stopOpacity={0.3}/>
