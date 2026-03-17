@@ -29,9 +29,11 @@ export const ProfileProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+
   const fetchProfile = async () => {
     try {
-      const response = await fetch('http://localhost:8000/profile');
+      const response = await fetch(`${API_URL}/profile`);
       if (!response.ok) throw new Error('Failed to fetch profile');
       const data = await response.json();
       setProfile(data);
@@ -45,7 +47,7 @@ export const ProfileProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
   const updateProfile = async (data: Partial<ProfileData>) => {
     try {
-      const response = await fetch('http://localhost:8000/profile/update', {
+      const response = await fetch(`${API_URL}/profile/update`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
