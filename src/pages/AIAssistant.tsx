@@ -68,7 +68,7 @@ Question: ${input}`
       apiMessages.push(userMessage);
     }
     
-    const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+    const API_URL = import.meta.env.VITE_API_URL || 'https://your-backend-url.com';
     
     try {
       const response = await fetch(`${API_URL}/api/chat`, {
