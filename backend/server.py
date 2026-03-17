@@ -1,6 +1,7 @@
-from fastapi import FastAPI, HTTPException, File, UploadFile
+from fastapi import FastAPI, HTTPException, File, UploadFile, Response
 import pdfplumber
 import io
+from pdf_generator import generate_pdf_report
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import List
@@ -63,6 +64,24 @@ async def extract_text_endpoint(file: UploadFile = File(...)):
             # Assume text/plain or similar
             return {"text": content.decode('utf-8', errors='ignore')}
     except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+class ExportReportRequest(BaseModel):
+    tender_data: dict
+    analysis_result: dict
+
+@app.post("/api/export-report")
+async def export_report_endpoint(request: ExportReportRequest):
+    try:
+        pdf_content = generate_pdf_report(request.tender_data, request.analysis_result)
+        return Response(
+            content=pdf_content,
+            media_type="application/pdf",
+            headers={"Content-Disposition": f"attachment; filename=Tender_Analysis_{request.tender_data.get('tender_id', 'report')}.pdf"}
+        )
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/health")

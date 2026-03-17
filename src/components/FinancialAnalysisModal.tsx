@@ -105,6 +105,31 @@ export const FinancialAnalysisModal = ({ tender, isOpen, onClose }: any) => {
     }
   };
 
+  const handleExportPDF = async () => {
+    if (!result) return;
+    try {
+      const resp = await fetch('http://localhost:8000/api/export-report', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          tender_data: tender,
+          analysis_result: result
+        })
+      });
+      const blob = await resp.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `Tender_Analysis_${tender.tender_id}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+    } catch (err) {
+      console.error('Export failed:', err);
+      alert("Failed to export PDF report.");
+    }
+  };
+
   return (
     <AnimatePresence>
       {isOpen && (
@@ -348,7 +373,6 @@ export const FinancialAnalysisModal = ({ tender, isOpen, onClose }: any) => {
                 </div>
               </div>
             </div>
-
             <div className="p-8 border-t border-white/5 bg-white/5 flex justify-end gap-4">
               <button 
                 onClick={onClose}
@@ -358,10 +382,10 @@ export const FinancialAnalysisModal = ({ tender, isOpen, onClose }: any) => {
               </button>
               {result && (
                 <button 
-                  onClick={() => window.print()}
-                  className="px-8 py-3 rounded-xl bg-white/10 text-white font-bold hover:bg-white/20 transition-all shadow-lg outline-none"
+                  onClick={handleExportPDF}
+                  className="px-8 py-3 rounded-xl bg-cyan-500 text-slate-900 font-bold hover:bg-cyan-400 transition-all shadow-lg shadow-cyan-500/20 flex items-center gap-2 outline-none"
                 >
-                  Export Report
+                  <FileText size={18} /> Export Full PDF Report
                 </button>
               )}
             </div>
