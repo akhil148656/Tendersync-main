@@ -124,33 +124,35 @@ export const TenderDetail = () => {
 
   return (
     <div className="space-y-8">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
-        <div>
-          <div className="flex items-center gap-3 mb-2">
-            <span className="px-2 py-1 rounded-md bg-cyan-500/20 text-cyan-400 text-[10px] font-bold uppercase tracking-wider">{source}</span>
+      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6 pb-6 border-b border-white/5">
+        <div className="flex-1 max-w-4xl">
+          <div className="flex items-center gap-3 mb-3">
+            <span className="px-2.5 py-1 rounded-md bg-cyan-500/20 text-cyan-400 text-[10px] font-bold uppercase tracking-wider">{source}</span>
             <span className="text-slate-500 font-mono text-sm">{tender.tender_id}</span>
           </div>
-          <h2 className="text-3xl font-bold text-white">{tender.title}</h2>
+          <h2 className="text-3xl font-bold text-white leading-tight">{tender.title}</h2>
         </div>
-        <div className="flex items-center gap-3">
-          <a href={tender.url || '#'} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-slate-300 text-sm font-medium hover:bg-white/10 transition-all">
+        <div className="flex flex-wrap items-center gap-3 shrink-0">
+          <a href={tender.url || '#'} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-slate-300 text-sm font-medium hover:bg-white/10 transition-all">
             <ExternalLink size={16} /> Original Setup
           </a>
-          <button 
-            onClick={() => setIsAnalysisOpen(true)}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-purple-500/10 border border-purple-500/20 text-purple-400 text-sm font-medium hover:bg-purple-500/20 transition-all font-sans"
-          >
-            <Calculator size={16} /> Analyze P&L & Risk
-          </button>
-          <button 
-            onClick={() => navigate('/ai-assistant', { state: { tenderContext: tender } })}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-orange-500/10 border border-orange-500/20 text-orange-400 text-sm font-medium hover:bg-orange-500/20 transition-all font-sans"
-          >
-            <MessageCircle size={16} /> Ask Assistant
-          </button>
+          <div className="flex items-center gap-2 p-1 rounded-2xl bg-white/5 border border-white/10">
+            <button 
+              onClick={() => setIsAnalysisOpen(true)}
+              className="flex items-center gap-2 px-4 py-2 rounded-xl bg-purple-500/10 text-purple-400 text-sm font-medium hover:bg-purple-500/20 transition-all font-sans"
+            >
+              <Calculator size={16} /> Analyse with AI
+            </button>
+            <button 
+              onClick={() => navigate('/ai-assistant', { state: { tenderContext: tender } })}
+              className="flex items-center gap-2 px-4 py-2 rounded-xl bg-orange-500/10 text-orange-400 text-sm font-medium hover:bg-orange-500/20 transition-all font-sans"
+            >
+              <MessageCircle size={16} /> Ask Assistant
+            </button>
+          </div>
           <button 
             onClick={handleAccept}
-            className="flex items-center gap-2 px-6 py-2 rounded-xl bg-cyan-500 text-slate-900 text-sm font-bold shadow-lg shadow-cyan-500/20 hover:bg-cyan-400 transition-all font-sans"
+            className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-cyan-500 text-slate-900 text-sm font-bold shadow-lg shadow-cyan-500/20 hover:bg-cyan-400 transition-all font-sans"
           >
             Prepare Bid
           </button>

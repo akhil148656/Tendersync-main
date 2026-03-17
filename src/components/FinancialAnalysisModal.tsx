@@ -155,7 +155,7 @@ export const FinancialAnalysisModal = ({ tender, isOpen, onClose }: any) => {
                   <TrendingUp size={24} />
                 </div>
                 <div>
-                  <h2 className="text-2xl font-bold text-white">Advanced P&L & Risk Analysis</h2>
+                  <h2 className="text-2xl font-bold text-white">Analyse with AI</h2>
                   <p className="text-sm text-slate-400 mt-1">Cross-referencing {tender.tender_id} with your inventory data.</p>
                 </div>
               </div>
