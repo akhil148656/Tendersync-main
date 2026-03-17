@@ -28,10 +28,10 @@ supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 UPLOAD_DIR = "uploads/bids"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
-# Enable CORS for frontend at port 3000
+# Enable CORS for all origins (Production + Local)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
