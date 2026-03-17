@@ -68,8 +68,10 @@ Question: ${input}`
       apiMessages.push(userMessage);
     }
     
+    const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+    
     try {
-      const response = await fetch('http://localhost:8000/api/chat', {
+      const response = await fetch(`${API_URL}/api/chat`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -89,7 +91,7 @@ Question: ${input}`
     } catch (error: any) {
       setMessages(prev => [...prev, { 
         role: 'assistant', 
-        content: `Error: ${error.message}. Make sure the backend server (server.py) is running on port 8000!` 
+        content: `Error: ${error.message}. Please ensure the backend services are available.` 
       }]);
     } finally {
       setIsLoading(false);

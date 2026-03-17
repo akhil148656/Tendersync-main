@@ -25,12 +25,14 @@ export const BidDetailsModal = ({ bidId, isOpen, onClose }: BidDetailsModalProps
   const [data, setData] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
 
+  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+
   useEffect(() => {
     if (isOpen && bidId) {
       const fetchBidDetails = async () => {
         setLoading(true);
         try {
-          const response = await fetch(`http://localhost:8000/api/bid/${bidId}`);
+          const response = await fetch(`${API_URL}/api/bid/${bidId}`);
           if (!response.ok) throw new Error("Failed to fetch bid details");
           const result = await response.json();
           setData(result);
@@ -146,7 +148,7 @@ export const BidDetailsModal = ({ bidId, isOpen, onClose }: BidDetailsModalProps
                         </div>
                       </div>
                       <a 
-                        href={`http://localhost:8000${doc.file_url}`} 
+                        href={`${API_URL}${doc.file_url}`} 
                         target="_blank" 
                         rel="noopener noreferrer"
                         className="p-2 rounded-lg bg-cyan-500/10 text-cyan-400 hover:bg-cyan-500 hover:text-white transition-all"
